@@ -521,17 +521,25 @@ def switch_branch(branch_name: str) -> str:
 def create_branch(branch_name: str, switch_to: bool = True) -> str:
     """
     Create a new git branch in DOCS_DIR, branching from the current HEAD.
+    Immediately pushes the branch to GitHub and sets the upstream so
+    subsequent git_commit_push() calls work without extra setup.
     branch_name: e.g. 'phase-2-docs'
     switch_to:   if True (default), checks out the new branch immediately
     """
     cmd = ["git", "checkout", "-b", branch_name] if switch_to else ["git", "branch", branch_name]
-    result = subprocess.run(
-        cmd, cwd=str(DOCS_DIR), capture_output=True, text=True,
-    )
+    result = subprocess.run(cmd, cwd=str(DOCS_DIR), capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"git error: {result.stderr.strip()}")
+
+    push = subprocess.run(
+        ["git", "push", "--set-upstream", "origin", branch_name],
+        cwd=str(DOCS_DIR), capture_output=True, text=True,
+    )
+    if push.returncode != 0:
+        raise RuntimeError(f"branch created locally but push failed: {push.stderr.strip()}")
+
     action = "Created and switched to" if switch_to else "Created"
-    return f"{action} branch '{branch_name}'."
+    return f"{action} branch '{branch_name}' and pushed to GitHub."
 
 
 # ── BUILD + VCS tools ─────────────────────────────────────────────────────────
@@ -567,10 +575,10 @@ def git_commit_push(message: str) -> str:
     Good message format: 'docs: add D014, resolve Q005, mark Phase 1 item done'
     """
     cmds = [
-        ["git", "pull", "--rebase"],
         ["git", "add", "."],
         ["git", "commit", "-m", message],
-        ["git", "push"],
+        ["git", "pull", "--rebase"],
+        ["git", "push", "--set-upstream", "origin", "HEAD"],
     ]
     output = []
     for cmd in cmds:
