@@ -30,6 +30,8 @@ primary_region = "iad"          # closest free region to Atlanta
     method       = "GET"
     path         = "/health"
 
+
+
 # Secrets (set via CLI, never in this file):
 #   fly secrets set API_KEY=your-secret-key
 #   fly secrets set GIT_TOKEN=your-github-pat

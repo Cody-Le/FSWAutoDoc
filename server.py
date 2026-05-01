@@ -609,8 +609,29 @@ if API_KEY:
 if __name__ == "__main__":
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     if transport == "sse":
-        mcp.run(
-            transport="sse",
+        # Mount a minimal health endpoint alongside the MCP SSE app
+        from starlette.applications import Starlette
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse
+        from starlette.routing import Route
+        import uvicorn
+
+        async def health(request: Request):
+            return JSONResponse({"status": "ok"})
+
+        # Get the underlying ASGI app from fastmcp and add /health
+        mcp_app = mcp.get_asgi_app()
+
+        app = Starlette(routes=[Route("/health", health)])
+
+        async def combined(scope, receive, send):
+            if scope["type"] == "http" and scope["path"] == "/health":
+                await app(scope, receive, send)
+            else:
+                await mcp_app(scope, receive, send)
+
+        uvicorn.run(
+            combined,
             host="0.0.0.0",
             port=int(os.environ.get("PORT", 8000)),
         )
