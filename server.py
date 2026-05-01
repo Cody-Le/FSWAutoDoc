@@ -573,24 +573,49 @@ def git_commit_push(message: str) -> str:
     Stage all changes in DOCS_DIR, commit, and push to GitHub.
     Call once after a complete set of edits — not after every individual change.
     Good message format: 'docs: add D014, resolve Q005, mark Phase 1 item done'
+
+    Order: stash local changes → pull --rebase → pop stash → add → commit → push
+    This ensures remote commits (e.g. from GitHub Actions) are always integrated first.
     """
-    cmds = [
-        ["git", "add", "."],
-        ["git", "commit", "-m", message],
-        ["git", "pull", "--rebase"],
-        ["git", "push", "--set-upstream", "origin", "HEAD"],
-    ]
     output = []
-    for cmd in cmds:
-        result = subprocess.run(
-            cmd, cwd=str(DOCS_DIR), capture_output=True, text=True
-        )
+
+    def run(cmd, allow_fail=False):
+        result = subprocess.run(cmd, cwd=str(DOCS_DIR), capture_output=True, text=True)
         output.append(f"$ {' '.join(cmd)}")
         if result.stdout.strip():
             output.append(result.stdout.strip())
         if result.returncode != 0:
             output.append(f"ERROR: {result.stderr.strip()}")
-            return "\n".join(output)
+            if not allow_fail:
+                raise RuntimeError("\n".join(output))
+        return result
+
+    # Stash any uncommitted changes so pull --rebase works cleanly
+    stash = run(["git", "stash", "--include-untracked"], allow_fail=True)
+    stashed = "No local changes" not in (stash.stdout + stash.stderr)
+
+    # Pull remote changes (e.g. GitHub Actions PDF commits)
+    run(["git", "pull", "--rebase"])
+
+    # Restore our changes on top
+    if stashed:
+        run(["git", "stash", "pop"])
+
+    # Now stage, commit, push
+    run(["git", "add", "."])
+
+    # If nothing to commit, skip gracefully
+    status = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=str(DOCS_DIR), capture_output=True, text=True,
+    )
+    if not status.stdout.strip():
+        output.append("Nothing to commit — working tree clean.")
+        return "\n".join(output)
+
+    run(["git", "commit", "-m", message])
+    run(["git", "push", "--set-upstream", "origin", "HEAD"])
+
     return "\n".join(output)
 
 
