@@ -50,7 +50,7 @@ from fastmcp import FastMCP
 DOCS_DIR = Path(os.environ.get("DOCS_DIR", "./docs")).resolve()
 API_KEY  = os.environ.get("API_KEY", "")
 
-mcp = FastMCP("space-fsw-docs", dependencies=["fastmcp"])
+mcp = FastMCP("space-fsw-docs")
 
 
 # ── Base preamble template ────────────────────────────────────────────────────
