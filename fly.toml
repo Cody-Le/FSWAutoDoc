@@ -16,24 +16,19 @@ primary_region = "iad"          # closest free region to Atlanta
   source      = "docs_volume"
   destination = "/data"
 
-[[services]]
-  internal_port = 8000
-  protocol      = "tcp"
+[http_service]
+  internal_port        = 8000
+  force_https          = true
+  auto_stop_machines   = false
+  auto_start_machines  = true
+  min_machines_running = 1
 
-  [[services.ports]]
-    port     = 443
-    handlers = ["tls", "http"]
-
-  [[services.ports]]
-    port     = 80
-    handlers = ["http"]
-
-  [services.http_checks]
-    interval      = "15s"
-    timeout       = "5s"
-    grace_period  = "10s"
-    method        = "GET"
-    path          = "/health"
+  [[http_service.checks]]
+    interval     = "15s"
+    timeout      = "5s"
+    grace_period = "10s"
+    method       = "GET"
+    path         = "/health"
 
 # Secrets (set via CLI, never in this file):
 #   fly secrets set API_KEY=your-secret-key
