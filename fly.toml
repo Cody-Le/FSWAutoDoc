@@ -1,41 +1,38 @@
-# fly.toml — Space FSW Simulation docs MCP server
-# Deploy: fly launch (first time) or fly deploy (updates)
+# fly.toml app configuration file generated for fswautodoc on 2026-05-01T13:43:15Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "space-fsw-docs"          # change to your chosen app name
-primary_region = "iad"          # closest free region to Atlanta
+app = 'fswautodoc'
+primary_region = 'iad'
 
 [build]
 
 [env]
-  MCP_TRANSPORT = "sse"
-  PORT          = "8000"
-  DOCS_DIR      = "/data/docs"
+  DOCS_DIR = '/data/docs'
+  MCP_TRANSPORT = 'sse'
+  PORT = '8000'
 
-# DOCS_DIR is a persistent volume — docs survive redeploys
-[mounts]
-  source      = "docs_volume"
-  destination = "/data"
+[[mounts]]
+  source = 'docs_volume'
+  destination = '/data'
 
 [http_service]
-  internal_port        = 8000
-  force_https          = true
-  auto_stop_machines   = false
-  auto_start_machines  = true
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
   min_machines_running = 1
 
   [[http_service.checks]]
-    interval     = "15s"
-    timeout      = "5s"
-    grace_period = "10s"
-    method       = "GET"
-    path         = "/health"
+    interval = '15s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
 
-
-
-# Secrets (set via CLI, never in this file):
-#   fly secrets set API_KEY=your-secret-key
-#   fly secrets set GIT_TOKEN=your-github-pat
-#
-# After first deploy, clone your docs repo into the volume:
-#   fly ssh console
-#   cd /data && git clone https://<token>@github.com/<you>/space-fsw-docs docs
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024
