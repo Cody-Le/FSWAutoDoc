@@ -1,0 +1,44 @@
+# fly.toml — Space FSW Simulation docs MCP server
+# Deploy: fly launch (first time) or fly deploy (updates)
+
+app = "space-fsw-docs"          # change to your chosen app name
+primary_region = "iad"          # closest free region to Atlanta
+
+[build]
+
+[env]
+  MCP_TRANSPORT = "sse"
+  PORT          = "8000"
+  DOCS_DIR      = "/data/docs"
+
+# DOCS_DIR is a persistent volume — docs survive redeploys
+[mounts]
+  source      = "docs_volume"
+  destination = "/data"
+
+[[services]]
+  internal_port = 8000
+  protocol      = "tcp"
+
+  [[services.ports]]
+    port     = 443
+    handlers = ["tls", "http"]
+
+  [[services.ports]]
+    port     = 80
+    handlers = ["http"]
+
+  [services.http_checks]
+    interval      = "15s"
+    timeout       = "5s"
+    grace_period  = "10s"
+    method        = "GET"
+    path          = "/health"
+
+# Secrets (set via CLI, never in this file):
+#   fly secrets set API_KEY=your-secret-key
+#   fly secrets set GIT_TOKEN=your-github-pat
+#
+# After first deploy, clone your docs repo into the volume:
+#   fly ssh console
+#   cd /data && git clone https://<token>@github.com/<you>/space-fsw-docs docs
